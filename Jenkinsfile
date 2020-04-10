@@ -1,10 +1,20 @@
-node {
-      stage('Clone repo') {
-        git branch: "master", url: "https://github.com/fatmaag/stage.git", credentialsId: "fatmaag"
-      }
-  stage('SonarTests') {
-        docker.image('test_foqus_sonarqube').inside('-v /var/run/docker.sock:/var/run/docker.sock --entrypoint="" --net jenkins_jenkins') {
-            sh "/usr/local/bin/sonar-scanner -Dsonar.host.url=http://172.18.0.1:9000 -Dsonar.projectBaseDir=. -Dsonar.projectKey=Foqus_test "
+pipeline {
+        agent none
+        stages {
+          stage("build & SonarQube analysis") {
+            agent any
+            steps {
+              withSonarQubeEnv('My SonarQube Server') {
+                sh 'mvn clean package sonar:sonar'
+              }
+            }
+          }
+          stage("Quality Gate") {
+            steps {
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+              }
+            }
+          }
         }
-    }
-}
+      }
